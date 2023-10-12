@@ -1,0 +1,732 @@
+we need few keywords to search for tech relavant videos on youtube.
+so i decided to scrape all the mobile,tablet,laptop,tws,watches names on website
+and sending each as keyword and getting the result then processing them
+which satisfies following conditions.
+1. it should have posted in english or tamil
+2. the channel should have subscribers range 50k to 500k
+3. channel should post one or two videos per day or per week, it should not post so many videos per day
+and it should post less than 4 videos per month. [ mostly it should not post less than 10 videos]
+4. channel should not have good thumbnail
+
+
+how we can acheive this.
+task 1.
+scraping gadget360 or gsmareana for all the gadget names.
+
+task 2.
+sending all the keywords in to the youtubechannels class which is in youtube.py
+
+task 3.
+filtering them by using different class
+
+task 4.
+verifying the filtered channels and pick the potential client in order send a email to them
+for our company growth [Eujin Graphics]
+
+
+task 1 is not that much important right now so it's better we work on the other taks which all
+are not depended in to task 1.
+
+
+consideration:
+youtube.py has to get updated like
+when we send a key word. it should do following things to get the channels for us.
+1. it has to search it on the search bar and apply channels filter to get the channels.
+2. it has to search it on the search bar and apply video filter to get the channels.
+3. this one is finding all the famous tech and gadgets review and unboxing youtubers then we have
+to get the all the comments of their videos. from their comment we may find the tech youtubers with potential
+subscriber base.
+
+these are for our initial step. after we get few client we have to buy paid subscriptions in to
+get the yotuube data. [ do research before get in to it]
+
+and Finally we have to buy aws cloud server to run our script. to get the potential clients.
+then we have to apply machine learning algorithms to find the poor thumbnails to get the potential clients.
+
+
+these things has to get completed within 100 days.
+within first 30 days we should get atleast two clients who posts daily videos for the price of 500 per
+thumbnail.
+
+---NOTE---
+we filter channels based on few conditions right, once filter the channels
+we should have to list them in to csv with the reasons that falls in to. then the next time we get the
+saerch result we should have to deny the channel that is in csv with reasons.
+
+LLM :
+working rule . spider has to search query and it has to scrape the channel id and channel name from the search results and then it has to find the subscribers count of that channel whereas we can't find that in the search result [ different bot for this role ] and then it has to verify few things [ subscribers should follow certain condition like 100k to 500k ] and then it has to check channel comes along the [tamil or english ] speaking channel. and video uploading status should be [daily] then only it has to store it in the csv. all the process has to happen simultaneously.
+
+df = pd.read_csv('analyse.csv')
+df.dropna(inplace=True)
+pd.set_option('display.max_columns', 6)
+pd.set_option('display.max_rows', 500)
+# print(df[(df['subscribers']>=10000) & (df['subscribers']<=49999)]['urls'])
+# 156        https://www.youtube.com//@diskartengpinoytayo (50/50)
+# 38                https://www.youtube.com//@AppleINIndia
+# inspirations 140               https://www.youtube.com//@iphoneitalia
+# 73                https://www.youtube.com//@NaseemSpeach
+#https://www.youtube.com/@imSpixel/videos
+string = 'Angakpa maongda neikhairase🔥🔥🔥.... Ahongba mamal da iphone pairase 😱😱🔥🔥😂'
+check = langdetect.detect(string)
+# print(check)
+
+'''channel analysis'''
+'''
+1. channel has to post maximum one video per day. (one video for two days is also fine)
+how to identify this. and how to avoid others.
+soln:
+i) if we find the month/months ago in latest video it seems
+that channel is not posting actively right.
+ii) then if we see hour/hours ago mor than once than the channel post more than one video
+so it can be avoided.
+iii) it seems we can see the video status as 1 day ago , 2 days ... 13days ago and then 2 weeks ago
+so we can go with the logic like re.find_all(r'days?',upload) len(day)>=7 and <=14
+these things can give us daily uploader for this we just need first 20 - 30 videos right.
+
+2. channel has to upload the video in Tamil or English cause we don't know other language
+to play with them.
+we have to analyse the last 30 days vidoe title for language detections .
+'''
+
+analyse.py
+print(url)
+self.driver.get(url)
+self.driver.implicitly_wait(5)
+html = self.driver.page_source
+soup = BeautifulSoup(html, 'html.parser')
+video_info = soup.select('.style-scope.ytd-rich-grid-media#meta')
+if not video_info:
+    print(soup)
+titles = [title.text.strip() for title in soup.find_all('yt-formatted-string',{'id':'video-title'})]
+uplod_status = ' '.join([ info.find_all('span',{
+        'class':'inline-metadata-item style-scope ytd-video-meta-block'})[1].text.strip() for info in video_info])
+-----youtube.py-----
+# import required libraries
+import pandas as pd
+from bs4 import  BeautifulSoup
+import  re
+from time import time
+from time import  sleep
+from urllib.parse import urljoin
+from selenium import  webdriver
+from selenium.webdriver.common.service import Service
+from selenium.webdriver.common.by import  By
+from selenium.webdriver.common.action_chains import  ActionChains
+from selenium.webdriver.chrome.options import  Options
+from selenium.webdriver.common.keys import  Keys
+from selenium.webdriver.chrome.service import  Service
+import  sys
+
+class YouTube:
+
+    def __init__(self,url,keyword):
+        self.url = url
+        self.keyword = keyword
+        self.driver = ''
+        self.channels = []
+        self.start()
+
+    def driver_setup(self):
+        '''this method takes care of setting up the driver'''
+        options  = Options()
+        # options.add_argument('--headless=new')
+        service = Service(executable_path="chromedriver.exe")
+        driver = webdriver.Chrome(options=options,service=service)
+        driver.maximize_window()
+        self.driver = driver
+
+    def build_url(self):
+        '''this method to build a url with filter applied which just
+        a part of string along with the url'''
+        keyword = '+'.join(self.keyword.split(' '))
+        # url = f'{self.url}results?search_query={keyword}&sp=EgIQAg%253D%253D'
+        video_url = f'{self.url}results?search_query={keyword}&sp=EgIYAw%253D%253D'
+        self.driver.get(video_url)
+        # self.get_channels()
+        self.videos_channel()
+
+    def get_channels(self):
+        '''parsing relevant data and storing it in to CSV'''
+        self.infinite_scroll() # it scrolls up to the bottom where it finds no results
+        self.driver.implicitly_wait(2) # waits for loading...
+        channels_container = self.driver.find_elements(
+            By.XPATH,'//div[@id="content-section"]')
+        for channel_details in channels_container:
+            try:
+                channel_name = channel_details.find_element(
+                    By.XPATH,".//yt-formatted-string["
+                             "@id='text' and @class='style-scope ytd-channel-name']").text.strip()
+            except:
+                channel_name = ''
+            try:
+                subscribers =  channel_details.find_element(
+                    By.XPATH,'.//span['
+                             '@id="video-count" and @class="style-scope ytd-channel-renderer"]').text.strip()
+            except:
+                subscribers = ''
+            try:
+                userid = channel_details.find_element(
+                    By.XPATH,'.//span['
+                             '@id="subscribers" and @class="style-scope ytd-channel-renderer"]').text.strip()
+                channel_link = f"{self.url}{userid}"
+            except:
+                 userid  = ''
+                 channel_link = ''
+            channel_dic = {
+                'channel name': channel_name,
+                'channel link': channel_link,
+                'userid': userid,
+                'subscribers': subscribers
+            }
+            print(channel_dic)
+            self.channels.append(channel_dic)
+
+    def videos_channel(self):
+        html = self.driver.page_source
+        soup = BeautifulSoup(html, 'lxml')
+        videos = soup.find_all('ytd-video-renderer', {"class": "style-scope ytd-item-section-renderer"})
+        for video in videos:
+            try:
+                channel_name = video.find(
+                    'a', {'class': 'yt-simple-endpoint style-scope yt-formatted-string'}).text.strip()
+            except:
+                channel_name = ''
+            try:
+                channel_id = video.find('a', {'class': 'yt-simple-endpoint style-scope yt-formatted-string'})['href']
+            except:
+                channel_id = ''
+            channel_dic = {
+                'channel name': channel_name,
+                'channel id': channel_id
+            }
+            df = pd.DataFrame([channel_dic])
+            if not ((self.df['channel name'] == channel_name) & (self.df['channel id'] == channel_id)).any():
+                self.df = pd.concat([self.df, df], ignore_index=True)
+                csv = self.df.to_csv('channels.csv', index=False)
+
+        print(self.df.shape)
+        print(self.df.head())
+
+    def infinite_scroll(self):
+        '''this method will press the pagedown key on keyboard
+        untill it finds the No Result text on the page'''
+
+
+        if 'Try different keywords or remove search filters' in self.driver.page_source:
+            print('There is no Channel for this keyword')
+            self.driver.close()
+            sys.exit()
+
+        while True:
+            actions = ActionChains(self.driver)
+            actions.send_keys(Keys.PAGE_DOWN) # press PAGE_DOWN key
+            actions.perform()
+            page_end = self.driver.find_elements(
+                By.XPATH, '//yt-formatted-string[@id="message"]') # No Results text on page
+            if page_end:
+                break
+
+    # it saves the data in to csv
+    def save_csv(self):
+        df = pd.DataFrame(self.channels)
+        csv = df.to_csv('YouTubeChannels.csv',index=False)
+
+    def start(self):
+        self.driver_setup()
+        self.build_url()
+        self.save_csv()
+        self.driver.close()
+
+if __name__=='__main__':
+    df = pd.read_csv(r'C:\Users\eujin\PycharmProjects\pythonProject\venv\Scrapy\Keywords.csv')
+    # df['search_query'] = df['Company'].str[:10] + ' ' + df['Model'].str[:10]
+    # search_list = list(df['search_query'])
+    URL = 'https://www.youtube.com/'
+    start_time = time()
+    # for search_query in search_list[:1]:
+    youtube = YouTube(URL,'i phone')
+    end_time  = time()
+    print(f'Time Take to run this script is : {(end_time-start_time)/60}')
+
+---youtube-splash.py---
+import json
+import re
+import requests
+from bs4 import  BeautifulSoup as bs
+
+
+def send_request(URL,SPLASH_URL):
+    pass
+
+
+if __name__ == '__main__':
+    SPLASH_URL = 'http://localhost:8050/render.html'
+    URL = 'https://www.youtube.com/@Parithabangal/videos'
+    cookies = {
+        'VISITOR_INFO1_LIVE': 'LwaxKRZtIw8',
+        'LOGIN_INFO': 'AFmmF2swRQIgbPxHWyvNWv00wor1I3QJqRBhgNNyG6xiASPPDMWKkXcCIQCtSmEcWo09x5fbrJQAybr_TvlLF2oHG31Hscw349FjGQ:QUQ3MjNmenVZRGdaZnJtMTByMG5za0NBTWxvOGtvX2tzNmgxVWtycHNUVzFZc19hb19UNlhGQ0JLZDBMaHdfSnlrcnBLRjExNjgwUmdjY2RYVXFYU2FuRGJ6OGlBMUphS2ZvX1hqT1FjaHFzTFk3WWFBclpSNjVCMXNKNmdvd1Q1SW9zX2lMdzFIQlYtWVFzSEotRG9ZOUc4YXVlbGtvM1g5MU1aRDRrV216cVdrdW1Dc3pTQjF4TVQ1b1lROXpkcmhrOXFHVTFwZFU2S0NXSFBKaWJocGpJQm1RTjhORHhCQQ==',
+        'PREF': 'f4=4000000&tz=Asia.Calcutta&f5=30000',
+        'SID': 'YQgGZTVmH0d8dZyTyX9EU7aqdw_me0Qt3h4tZW1U60r8X6BIEXKUnTS8gUfbOzJIN6CK8w.',
+        '__Secure-1PSID': 'YQgGZTVmH0d8dZyTyX9EU7aqdw_me0Qt3h4tZW1U60r8X6BIOGEVShs2ykYsNtofXjjOsA.',
+        '__Secure-3PSID': 'YQgGZTVmH0d8dZyTyX9EU7aqdw_me0Qt3h4tZW1U60r8X6BIcBgTcHqfVCBvHLBUXi8vTQ.',
+        'HSID': 'AV50KliAq99o9ofFB',
+        'SSID': 'AkfbpLkqXz44JZ2Pl',
+        'APISID': 'WcCkQcWeB5ly52I5/AslZtB65BZnyzpj9P',
+        'SAPISID': 'CAt0zFK89tUjTATV/A1Z1Osij1vKKs88fk',
+        '__Secure-1PAPISID': 'CAt0zFK89tUjTATV/A1Z1Osij1vKKs88fk',
+        '__Secure-3PAPISID': 'CAt0zFK89tUjTATV/A1Z1Osij1vKKs88fk',
+        'YSC': 'xN9XNUDDW1Y',
+        'SIDCC': 'AP8dLtxTllTIJC9JKKtK6qRt-emv3yfrTK2j-d_w45Fxw3Lq5ZstBXgIrSBZyMH76D3DFqk9FGg',
+        '__Secure-1PSIDCC': 'AP8dLtwtvkzhPXNaLW2VZ70Uw8aR74uCJiICYNfjBo4L4jLtRyzPTiuw2Z2iyhDc1ZYu7f3lEpc',
+        '__Secure-3PSIDCC': 'AP8dLtzU9Fxr1xfsZr23oLWad4ruiktb8X_8GXzgMcIGzqp7BaVytKz-eTxPZSoED3Yp2hEaAAc',
+    }
+    headers = {
+        'authority': 'www.youtube.com',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language': 'en-US,en;q=0.9,ta;q=0.8,hi;q=0.7',
+        'cache-control': 'no-cache',
+        # 'cookie': 'VISITOR_INFO1_LIVE=LwaxKRZtIw8; LOGIN_INFO=AFmmF2swRQIgbPxHWyvNWv00wor1I3QJqRBhgNNyG6xiASPPDMWKkXcCIQCtSmEcWo09x5fbrJQAybr_TvlLF2oHG31Hscw349FjGQ:QUQ3MjNmenVZRGdaZnJtMTByMG5za0NBTWxvOGtvX2tzNmgxVWtycHNUVzFZc19hb19UNlhGQ0JLZDBMaHdfSnlrcnBLRjExNjgwUmdjY2RYVXFYU2FuRGJ6OGlBMUphS2ZvX1hqT1FjaHFzTFk3WWFBclpSNjVCMXNKNmdvd1Q1SW9zX2lMdzFIQlYtWVFzSEotRG9ZOUc4YXVlbGtvM1g5MU1aRDRrV216cVdrdW1Dc3pTQjF4TVQ1b1lROXpkcmhrOXFHVTFwZFU2S0NXSFBKaWJocGpJQm1RTjhORHhCQQ==; PREF=f4=4000000&tz=Asia.Calcutta&f5=30000; SID=YQgGZTVmH0d8dZyTyX9EU7aqdw_me0Qt3h4tZW1U60r8X6BIEXKUnTS8gUfbOzJIN6CK8w.; __Secure-1PSID=YQgGZTVmH0d8dZyTyX9EU7aqdw_me0Qt3h4tZW1U60r8X6BIOGEVShs2ykYsNtofXjjOsA.; __Secure-3PSID=YQgGZTVmH0d8dZyTyX9EU7aqdw_me0Qt3h4tZW1U60r8X6BIcBgTcHqfVCBvHLBUXi8vTQ.; HSID=AV50KliAq99o9ofFB; SSID=AkfbpLkqXz44JZ2Pl; APISID=WcCkQcWeB5ly52I5/AslZtB65BZnyzpj9P; SAPISID=CAt0zFK89tUjTATV/A1Z1Osij1vKKs88fk; __Secure-1PAPISID=CAt0zFK89tUjTATV/A1Z1Osij1vKKs88fk; __Secure-3PAPISID=CAt0zFK89tUjTATV/A1Z1Osij1vKKs88fk; YSC=xN9XNUDDW1Y; SIDCC=AP8dLtxTllTIJC9JKKtK6qRt-emv3yfrTK2j-d_w45Fxw3Lq5ZstBXgIrSBZyMH76D3DFqk9FGg; __Secure-1PSIDCC=AP8dLtwtvkzhPXNaLW2VZ70Uw8aR74uCJiICYNfjBo4L4jLtRyzPTiuw2Z2iyhDc1ZYu7f3lEpc; __Secure-3PSIDCC=AP8dLtzU9Fxr1xfsZr23oLWad4ruiktb8X_8GXzgMcIGzqp7BaVytKz-eTxPZSoED3Yp2hEaAAc',
+        'dnt': '1',
+        'pragma': 'no-cache',
+        'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+        'sec-ch-ua-arch': '"x86"',
+        'sec-ch-ua-bitness': '"64"',
+        'sec-ch-ua-full-version': '"114.0.5735.199"',
+        'sec-ch-ua-full-version-list': '"Not.A/Brand";v="8.0.0.0", "Chromium";v="114.0.5735.199", "Google Chrome";v="114.0.5735.199"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-model': '""',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-ch-ua-platform-version': '"10.0.0"',
+        'sec-ch-ua-wow64': '?0',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-user': '?1',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+        'x-client-data': 'CJa2yQEIorbJAQipncoBCN/zygEIlKHLAQia/swBCISTzQEIhaDNAQjksM0BCNq0zQEI3L3NAQi7vs0BCKS/zQEIvL/NAQj/v80BGNOdzQEYg73NAQ==',
+    }
+    session = requests.session()
+    session.headers.update(headers)
+    session.cookies.update(cookies)
+    response = session.get(SPLASH_URL,params={'url':URL,'wait':2})
+
+    soup = bs(response.text,'lxml')
+    script_tag = soup.find('script',string = re.compile('var ytInitialData =.*'))
+    json_string = re.search('=\s(\{.*\});</script>',str(script_tag),re.M).group(1)
+    # json_content = json.dumps(json_string)
+    # print(json_content)
+    dic = json.loads(json_string)
+    videoinfo = dic['contents']['twoColumnBrowseResultsRenderer']['tabs'][1][
+        'tabRenderer']['content']['richGridRenderer']['contents']
+    for info in videoinfo:
+        try:
+            video_title = info['richItemRenderer']['content']['videoRenderer']['title'][
+            'runs'][0]['text']
+        except:
+            video_title = ''
+        try:
+            description = info['richItemRenderer']['content']['videoRenderer'][
+                'descriptionSnippet']['runs'][0]['text']
+        except:
+            description = ''
+        try:
+            published_time = info['richItemRenderer']['content'][
+                'videoRenderer']['publishedTimeText']['simpleText']
+        except:
+             published_time = ''
+        try:
+            video_length = info['richItemRenderer']['content'][
+                'videoRenderer']['lengthText']['simpleText']
+        except:
+            video_length = ''
+        try:
+            views =  info['richItemRenderer']['content'][
+                'videoRenderer']['viewCountText']['simpleText']
+        except:
+            views = ''
+        try:
+            videoid = info['richItemRenderer']['content'][
+                'videoRenderer']['videoId']
+        except:
+            videoid = ''
+        print(f'https://www.youtube.com/watch?v={videoid}')
+---youtube-videos.py---
+#importing necessary libraries
+import re
+import pandas as pd
+from bs4 import  BeautifulSoup as bs
+from selenium import webdriver
+from time import sleep
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import  Keys
+from time import  time
+
+#setting up the driver here
+def driver_setup():
+    options = webdriver.ChromeOptions()
+    # options.add_argument('headless')
+    driver = webdriver.Chrome()
+    driver.maximize_window()
+    return  driver
+
+# getting the data from the channels
+def get_data(URL):
+    driver = driver_setup()
+    driver.get(URL)
+
+    infinite_scroll(driver)
+    driver.implicitly_wait(10)
+    sleep(5)
+    html = driver.page_source
+    soup = bs(html,'lxml')
+    videos = soup.find_all('ytd-rich-item-renderer',{
+        "class":"style-scope ytd-rich-grid-row"})
+    all_videos = []
+    for video in videos:
+        try:
+            video_duration = video.find('span',{
+                'class':'style-scope ytd-thumbnail-overlay-time-status-renderer'}).text.strip()
+        except:
+            video_duration = ''
+        try:
+            views_count = video.find('span',{
+                'class':'inline-metadata-item style-scope ytd-video-meta-block'}).text.strip()
+        except:
+            views_count = ''
+        try:
+            video_title = video.find('h3', {
+                'class': 'style-scope ytd-rich-grid-media'}).text.strip()
+        except:
+            video_title = ''
+        try:
+            posted = video.find_all('span', {
+                'class': 'inline-metadata-item style-scope ytd-video-meta-block'})[1].text.strip()
+        except:
+            posted = ''
+        try:
+            relative_link = video.find('a',{
+                'class':'yt-simple-endpoint inline-block style-scope ytd-thumbnail','id':'thumbnail'})['href']
+            video_link = f'https://www.youtube.com/{relative_link}'
+            print(video_link)
+        except:
+
+            video_link  = ''
+        dic = {
+            'Title':video_title,
+            'Views':views_count,
+            'Duration':video_duration,
+            'Posted':posted,
+            'Video Link':video_link,
+        }
+        print(dic)
+        all_videos.append(dic)
+    print(len(all_videos))
+    df = pd.DataFrame(all_videos)
+    csv = df.to_csv('BBC.csv',index=False)
+    driver.close()
+
+# adding scrolling functionality to the scraper
+def infinite_scroll(driver):
+    while True:
+        actions = ActionChains(driver)
+        actions.send_keys(Keys.PAGE_DOWN)
+        actions.perform()
+        html = driver.page_source
+        if "Change Localdrives icons on Windows PC or Laptop in தமிழ்" in html:
+            print('yes')
+            break
+
+
+if __name__ == '__main__':
+    start_time = time()
+    URL = 'https://www.youtube.com/@rvtechtamil/videos'
+    get_data(URL)
+    end_time = time()
+    print((end_time-start_time)/60)
+
+
+---practice.py---
+# import required libraries(Ctrl + Alt +O)
+import json
+import os
+import re
+import sys
+from time import time
+import pandas as pd
+import numpy as np
+import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+
+def clean_subscribers(subscriber_count:str)->float:
+    if 'M' in subscriber_count:
+        subscriber_count = subscriber_count.replace('subscribers','').replace('M','')
+        subscriber_count = float(subscriber_count)*1000000
+    elif 'K' in subscriber_count:
+        subscriber_count = subscriber_count.replace('subscribers','').replace('K','')
+        subscriber_count = float(subscriber_count)*1000
+    else:
+        subscriber_count = float(subscriber_count.replace('subscribers',''))
+    return  subscriber_count
+
+class YouTube:
+
+    def __init__(self, url, headers,cookies,keyword):
+        self.url = url
+        self.headers = headers
+        self.cookies = cookies
+        self.keyword = keyword
+        self.driver = ''
+        self.channels = []
+        if not  os.path.exists('channels.csv'):
+            self.df_ = pd.DataFrame(columns=[
+        'channel name',
+        'channel id',
+        ])
+            csv = self.df_.to_csv('channels.csv',index=False)
+        self.df = pd.read_csv('channels.csv')
+        self.start()
+
+    def driver_setup(self):
+        '''this method takes care of setting up the driver'''
+        options = Options()
+        options.add_argument('--headless=new')
+        service = Service(executable_path="chromedriver.exe")
+        driver = webdriver.Chrome(options=options, service=service)
+        # driver.maximize_window()
+        self.driver = driver
+
+    def build_url(self):
+        '''this method to build a url with filter applied which just
+        a part of string along with the url'''
+        keyword = '+'.join(self.keyword.split(' '))
+        video_url = f'{self.url}results?search_query={keyword}&sp=EgIYAw%253D%253D'
+        self.driver.get(video_url)
+        self.videos_channel()
+
+    def videos_channel(self):
+        self.infinite_scroll()
+        html  = self.driver.page_source
+        soup  = BeautifulSoup(html,'lxml')
+        videos = soup.find_all('ytd-video-renderer',{"class":"style-scope ytd-item-section-renderer"})
+        for video in videos:
+            try:
+                channel_name = video.find(
+                    'a',{'class':'yt-simple-endpoint style-scope yt-formatted-string'}).text.strip()
+            except:
+                channel_name = ''
+            try:
+                channel_id  = video.find('a',{'class':'yt-simple-endpoint style-scope yt-formatted-string'})['href']
+            except:
+                channel_id = ''
+            channel_dic = {
+                'channel name':channel_name,
+                'channel id':channel_id,
+                'key word':self.keyword
+            }
+
+            df = pd.DataFrame([channel_dic])
+            if not ((self.df['channel name'] == channel_name) & (self.df['channel id'] == channel_id)).any():
+                self.df = pd.concat([self.df,df],ignore_index=True)
+                csv = self.df.to_csv('channels.csv',index=False)
+
+    def infinite_scroll(self):
+        '''this method will press the pagedown key on keyboard
+        untill it finds the No Result text on the page'''
+
+
+        if 'Try different keywords or remove search filters' in self.driver.page_source:
+            print('There is no Channel for this keyword')
+            self.driver.close()
+            sys.exit()
+
+        while True:
+            actions = ActionChains(self.driver)
+            actions.send_keys(Keys.PAGE_DOWN) # press PAGE_DOWN key
+            actions.perform()
+            page_end = self.driver.find_elements(
+                By.XPATH, '//yt-formatted-string[@id="message"]') # No Results text on page
+            if page_end:
+                break
+
+    def analyse(self):
+        def start_requests(url):
+            response = requests.get(url,headers=self.headers,cookies=self.cookies)
+            soup = BeautifulSoup(response.text,'lxml')
+            try:
+                json_ = soup.find('script',string=re.compile(
+                    'var ytInitialData = .*')).text
+                json_data = re.search(r'var ytInitialData =(.*);',json_).group(1)
+                data = json.loads(json_data)
+                subscriber_count = data ['header'][
+                    'c4TabbedHeaderRenderer']['subscriberCountText']['simpleText']
+                return  clean_subscribers(subscriber_count)
+            except:
+                try:
+                    subscriber_count = re.search(
+                    r"([\d.]+)\s?[kKmM]\s?Subscriber",response.text,re.DOTALL).group(1)
+                    return  float(clean_subscribers(subscriber_count))
+                except:
+                    print(url)
+                    return  np.nan
+
+        self.df['urls'] = self.df['channel id'].apply(lambda channel_id: self.url + str(channel_id))
+        self.df['subscribers'] = list(map(start_requests,list(self.df['urls'])))
+        change_order = ['search query','urls','channel name','channel id',
+                        'subscribers']
+        self.df = self.df.reindex(columns=change_order)
+        pd.set_option('display.max_columns',5)
+        pd.set_option('display.max_rows',100)
+        csv = self.df.to_csv('channels.csv',index=False)
+
+    def start(self):
+        self.driver_setup()
+        self.build_url()
+        # self.analyse()
+        self.driver.close()
+
+
+if __name__ == '__main__':
+    df = pd.read_csv(r"C:\Users\eujin\PycharmProjects\pythonProject\venv\Scrapy\Keywords.csv")
+    filter_ = df[df['Anounced Year'] > 2022]
+    df['search query'] = df['Company'] + " " + df['Model']
+    search_list = list(df['search query'].head(10))
+    URL = 'https://www.youtube.com/'
+    COOKIES = {
+        'YSC': 'Zz_O20FcZLM',
+        'VISITOR_INFO1_LIVE': 'Mi9O6FN657g',
+        'PREF': 'f4=4000000&tz=Asia.Calcutta',
+        'GPS': '1',
+    }
+    HEADERS = {
+        'authority': 'www.youtube.com',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language': 'en-US,en;q=0.9',
+        'cache-control': 'no-cache',
+        # 'cookie': 'YSC=Zz_O20FcZLM; VISITOR_INFO1_LIVE=Mi9O6FN657g; PREF=f4=4000000&tz=Asia.Calcutta; GPS=1',
+        'dnt': '1',
+        'pragma': 'no-cache',
+        'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+        'sec-ch-ua-arch': '"x86"',
+        'sec-ch-ua-bitness': '"64"',
+        'sec-ch-ua-full-version': '"114.0.5735.199"',
+        'sec-ch-ua-full-version-list': '"Not.A/Brand";v="8.0.0.0", "Chromium";v="114.0.5735.199", "Google Chrome";v="114.0.5735.199"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-model': '""',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-ch-ua-platform-version': '"10.0.0"',
+        'sec-ch-ua-wow64': '?0',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'none',
+        'sec-fetch-user': '?1',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+    }
+    start_time = time()
+    for search_query in search_list[:11]:
+        youtube = YouTube(URL,HEADERS,COOKIES, search_query)
+    end_time = time()
+    print(f'Time Take to run this script is : {(end_time - start_time) / 60}')
+
+---check dimension---
+def check_dim(df)-> int:
+    if  not os.path.exists('csv_shape.txt'):
+        with open('csv_shape.txt', 'w') as file:
+           file.write(f'{str(df.shape[0])}\n')
+           start_index = 0
+    else:
+        with open('csv_shape.txt', 'r+') as file:
+            lines = file.readlines()
+            start_index =  int(lines[-1])
+            file.write(f'{str(df.shape[0])}\n')
+
+
+    return  start_index
+
+    if not lines:
+        shape = str(df.shape[0])
+        check_dim(df,shape=shape)
+
+---playwright and pywhatkit---
+# from playwright.sync_api import sync_playwright
+# from bs4 import BeautifulSoup
+# from  time import  sleep
+# with sync_playwright() as p:
+#     browser = p.chromium.launch(headless=False)
+#     context = browser.new_context()
+#     page = context.new_page()
+#     page.goto('https://www.youtube.com/watch?v=lgyszZhAZOI')
+#     page.wait_for_selector('body')
+#     page.evaluate("window.scrollBy(0,9000);")
+#     soup = BeautifulSoup(page.content(),'lxml')
+#     print(soup.find_all('script'))
+#     sleep(10)
+#     # You should see the 'example.com' page opened in a Chromium browser.
+#     browser.close()
+#
+#
+# import pywhatkit
+#
+# def send_whatsapp_message(phone_number, message):
+#     pywhatkit.sendwhatmsg(phone_number, message,10,47,15,True,3)
+#
+# if __name__ == '__main__':
+#     send_whatsapp_message(', 'Hello!')
+
+'''---Comments.py---'''
+    '''Note :
+    this in online json viewer...	onResponseReceivedEndpoints		[1]
+for the first token we got from the watch url we will get this 	onResponseReceivedEndpoints		[2] for the rest
+we get after that that will be as in the top. so have to do some correction why the first token has [2] ? it's because
+of the comment header informations like how many comments and stuff.'''
+
+'''---language analysis---'''
+'''audion analyser function'''
+
+from pytube import  YouTube
+import  os
+# initializing yt object here
+yt = YouTube('https://www.youtube.com/watch?v=Vm6MoiKL_FA')
+audio = yt.streams.filter(only_audio=True).get_by_itag(251)
+# audio.download(f'/audio/audio1.mp4')
+# audio.download()
+print(yt.description)
+
+'''--detectlanguge---'''
+# this function detects the language of the youtube channel using few conditions
+def detect_language_(titles:list) -> bool:
+    """
+    Detects the dominant language from a list of YouTube video titles and checks for specific conditions.
+
+    This function takes a list of video titles as input and detects the dominant language
+    for each title using the langdetect library. It then checks for specific conditions
+    to determine whether the titles meet the required criteria.
+
+    Parameters:
+    titles (list): A list of strings representing the video titles to be analyzed.
+
+    Returns:
+    bool: True if the titles meet the specified conditions, False otherwise.
+    """
+    DetectorFactory.seed = 0 # it will detect lang always as same before.
+    # below line gets list of video titles and detects langs and score of each
+    langs_and_scores = [langdetect.detect_langs(title) for title in titles if title]
+    # we are getting the [lang,lang,lang] from the [[lang:score][lang:score][lang:score]]
+    languages = [str(lang).split(':')[0] for lang_and_score in langs_and_scores
+                 for lang  in lang_and_score]
+    # if any of the video's lang is "ta" or all of the videos lang are "en" return True
+    # else False.
+    if 'ta' in languages:
+        return True
+    elif all( lang=='en' for lang in languages):
+        return True
+    else:
+        return False
